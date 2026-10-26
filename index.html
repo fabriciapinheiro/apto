@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Contas da Mãe</title>
+<style>
+  :root {
+    --bg: #faf7f2; --panel: #ffffff; --fg: #2b2622; --muted: #7a6f66; --line: #ece5dc;
+    --ok: #2f7d4f; --bad: #c0392b; --warn: #b7791f; --muted-bar: #d9d1c7; --hero: #fbf1e1;
+    --radius: 18px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1d1a17; --panel: #26221e; --fg: #f3ede6; --muted: #b3a89c; --line: #3a342e;
+      --ok: #5fbf86; --bad: #ef7a6c; --warn: #e3b25d; --muted-bar: #4a433c; --hero: #2e2820; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.5; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; display: flex; flex-direction: column; gap: 20px; }
+  h1, .num, .big { font-family: Georgia, "Times New Roman", serif; font-weight: 400; }
+  /* Tela de senha */
+  .gate { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+  .gate form { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 32px 24px; width: min(100%, 360px); display: flex; flex-direction: column; gap: 14px; text-align: center; }
+  .gate h1 { margin: 0; font-size: 1.8rem; }
+  .gate p { margin: 0; color: var(--muted); }
+  .gate input { font: inherit; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--fg); text-align: center; letter-spacing: .08em; }
+  .gate button { font: inherit; padding: 12px; border: 0; border-radius: 12px; background: var(--fg); color: var(--bg); cursor: pointer; }
+  .gate .erro { color: var(--bad); min-height: 1.5em; font-size: .9rem; }
+  /* Painel */
+  .hero { background: var(--hero); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px 22px; }
+  .hero .oi { font-size: .85rem; color: var(--muted); }
+  .hero h1 { margin: 4px 0 8px; font-size: 2.1rem; }
+  .hero p { margin: 0; font-size: 1.05rem; max-width: 60ch; }
+  .hero b { font-weight: 600; } .hero b.bad { color: var(--bad); }
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tabs button { font: inherit; font-size: .95rem; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 7px 16px; color: var(--muted); cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .page { display: flex; flex-direction: column; gap: 20px; } .page[hidden] { display: none; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+  .tile { display: flex; flex-direction: column; gap: 4px; }
+  .tile .ic { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--tone, var(--muted)) 15%, transparent); font-size: 1.05rem; }
+  .tile .lbl { font-size: .9rem; color: var(--muted); margin-top: 6px; }
+  .tile .num { font-size: 1.9rem; color: var(--tone, var(--fg)); font-variant-numeric: tabular-nums; }
+  .tile .sub { font-size: .8rem; color: var(--muted); }
+  .t-ok { --tone: var(--ok); } .t-bad { --tone: var(--bad); } .t-warn { --tone: var(--warn); }
+  h2 { font-size: 1.15rem; font-weight: 600; margin: 0 0 4px; }
+  .note { font-size: .9rem; color: var(--muted); margin: 0 0 14px; }
+  .aviso { border-radius: var(--radius); padding: 16px 20px; border: 1px solid var(--line); font-size: 1rem; }
+  .aviso b, .hero b { white-space: nowrap; }
+  .aviso.bad { background: color-mix(in srgb, var(--bad) 9%, var(--panel)); }
+  .aviso.ok { background: color-mix(in srgb, var(--ok) 9%, var(--panel)); }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 14px; }
+  .filtro { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: .95rem; }
+  .filtro select { font: inherit; padding: 6px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--fg); }
+  .scroll { max-height: 30rem; overflow: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .95rem; font-variant-numeric: tabular-nums; }
+  th { text-align: left; font-weight: 500; font-size: .8rem; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); }
+  td { padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  .r { text-align: right; } .neg { color: var(--bad); font-weight: 600; } .pos { color: var(--ok); }
+  .vazio { color: var(--muted); text-align: center; padding: 20px; }
+  .obs { display: block; font-size: .8rem; color: var(--muted); }
+  .pill { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: .8rem; white-space: nowrap; }
+  .pill.atrasada { color: var(--bad); background: color-mix(in srgb, var(--bad) 13%, transparent); }
+  .pill.paga { color: var(--ok); background: color-mix(in srgb, var(--ok) 13%, transparent); }
+  .pill.avencer, .pill.aconfirmar { color: var(--warn); background: color-mix(in srgb, var(--warn) 15%, transparent); }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .8rem; color: var(--muted); margin-bottom: 8px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+  .chart { position: relative; }
+  .chart svg { display: block; width: 100%; height: auto; }
+  .tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.12); padding: 6px 10px; font-size: .8rem; white-space: nowrap; display: none; z-index: 2; }
+  .tip .d { color: var(--muted); }
+  .rodape { font-size: .8rem; color: var(--muted); text-align: center; }
+  .rodape button { font: inherit; background: none; border: 0; color: inherit; text-decoration: underline; cursor: pointer; }
+  .only-narrow { display: none; }
+  @media (max-width: 520px) { .hide-narrow { display: none; } .only-narrow { display: inline-block; margin-top: 4px; } td, th { padding-left: 6px; padding-right: 6px; } .hero h1 { font-size: 1.7rem; } }
+</style>
+</head>
+<body>
+<div class="gate" id="gate">
+  <form id="form-senha" autocomplete="off">
+    <div style="font-size:2rem" aria-hidden="true">🏠</div>
+    <h1>Contas da Mãe</h1>
+    <p>Digite a senha para ver as contas.</p>
+    <input id="senha" type="password" inputmode="text" aria-label="Senha" placeholder="Senha" required>
+    <button type="submit">Entrar</button>
+    <div class="erro" id="erro" role="alert"></div>
+  </form>
+</div>
+
+<div class="wrap" id="app" hidden></div>
+
+<script id="payload" type="application/json">{"salt": "z1oyXBnaSy4jKue2CtPVrg==", "iv": "QZnm/HRQ30QiszT6", "iter": 600000, "ct": "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"}</script>
+<script>
+(() => {
+  const P = JSON.parse(document.getElementById('payload').textContent);
+  const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  async function abrir(senha) {
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(senha), 'PBKDF2', false, ['deriveKey']);
+    const chave = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: b64(P.salt), iterations: P.iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+    const txt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(P.iv) }, chave, b64(P.ct));
+    return JSON.parse(new TextDecoder().decode(txt));
+  }
+  const form = document.getElementById('form-senha');
+  const erro = document.getElementById('erro');
+  async function tentar(senha, lembrar) {
+    try {
+      const dados = await abrir(senha);
+      if (lembrar) { try { sessionStorage.setItem('cm-s', senha); } catch (e) {} }
+      document.getElementById('gate').remove();
+      montar(dados);
+    } catch (e) { erro.textContent = 'Senha incorreta. Tente de novo.'; }
+  }
+  form.addEventListener('submit', (ev) => { ev.preventDefault(); erro.textContent = 'Abrindo…'; tentar(document.getElementById('senha').value.trim(), true); });
+  try { const s = sessionStorage.getItem('cm-s'); if (s) tentar(s, false); } catch (e) {}
+
+  // ---------- Painel ----------
+  const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  const brl0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+  const mesDe = (s) => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s || ''); return m ? m[2] + '/' + m[3] : null; };
+  const iso = (s) => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s || ''); return m ? `${m[3]}-${m[2]}-${m[1]}` : '9999'; };
+  const ordemMes = (m) => (m === 'Todos' ? '0' : m === 'Sem data' ? '9999' : m.slice(3) + '-' + m.slice(0, 2));
+  const nomeMes = ['', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  const rotuloMes = (m) => (m === 'Todos' ? 'todos os meses' : m === 'Sem data' ? 'sem data' : `${nomeMes[+m.slice(0, 2)]} de ${m.slice(3)}`);
+  const pillClasse = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s/g, '');
+  const el = (tag, attrs = {}, ...kids) => {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) { if (k === 'class') e.className = v; else if (k === 'text') e.textContent = v; else e.setAttribute(k, v); }
+    kids.flat().forEach((k) => e.append(k));
+    return e;
+  };
+  const NS = 'http://www.w3.org/2000/svg';
+  const s = (tag, attrs = {}) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
+  const ticks = (lo, hi, n = 4) => {
+    const span = hi - lo || 1; const step0 = span / n; const mag = Math.pow(10, Math.floor(Math.log10(step0)));
+    const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((x) => x >= step0);
+    const a = Math.floor(lo / step) * step, b = Math.ceil(hi / step) * step; const out = [];
+    for (let v = a; v <= b + step / 2; v += step) out.push(Math.round(v * 100) / 100);
+    return out;
+  };
+  const medir = (svg, txt) => { const t = s('text', { 'font-size': 12 }); t.textContent = txt; svg.append(t); const w = t.getComputedTextLength(); t.remove(); return w; };
+
+  function montar(D) {
+    const app = document.getElementById('app');
+    app.hidden = false;
+    const r = Object.fromEntries(D.resumo.map((x) => [x.indicador, x.valor]));
+    const base = Object.fromEntries(D.base.map((x) => [x.indicador, x.valor]));
+
+    // Cabeçalho
+    app.append(el('header', { class: 'hero' },
+      el('div', { class: 'oi', text: 'Acompanhamento da casa' }),
+      el('h1', { text: 'Contas da Mãe' }),
+      el('p', {}, 'Hoje há ', el('b', { text: brl.format(base['Pendências em aberto hoje'] || 0) }), ' em contas ainda não pagas, sendo ',
+        el('b', { class: 'bad', text: brl.format(r['Em atraso (acumulado)'] || 0) }), ' já vencidos.')
+    ));
+
+    const abas = [['geral', 'Resumo'], ['projecao', 'Próximos meses'], ['pagos', 'Pagos'], ['pendentes', 'Pendentes']];
+    const nav = el('nav', { class: 'tabs', role: 'tablist' });
+    const paginas = {};
+    abas.forEach(([id, nome], i) => {
+      const b = el('button', { role: 'tab', 'aria-selected': String(i === 0), text: nome });
+      b.addEventListener('click', () => mostrar(id));
+      nav.append(b);
+      paginas[id] = { botao: b, sec: el('section', { class: 'page', id }) };
+      if (i) paginas[id].sec.hidden = true;
+    });
+    app.append(nav, ...Object.values(paginas).map((p) => p.sec));
+    const desenhos = {};
+    function mostrar(id) {
+      Object.entries(paginas).forEach(([k, p]) => { p.sec.hidden = k !== id; p.botao.setAttribute('aria-selected', String(k === id)); });
+      if (desenhos[id]) desenhos[id]();
+      history.replaceState(null, '', '#' + id);
+    }
+
+    const tile = (tom, ic, lbl, num, sub) => el('div', { class: 'card tile ' + tom }, el('div', { class: 'ic', 'aria-hidden': 'true', text: ic }), el('div', { class: 'lbl', text: lbl }), el('div', { class: 'num', text: num }), sub ? el('div', { class: 'sub', text: sub }) : '');
+
+    // ---- Resumo
+    const mesRef = rotuloMes(D.mes_ref);
+    paginas.geral.sec.append(
+      el('div', { class: 'tiles' },
+        tile('t-ok', '💰', `Recebido em ${mesRef}`, brl.format(r['Recebido neste mês'] || 0), 'Salário e outras entradas'),
+        tile('', '✔️', `Pago em ${mesRef}`, brl.format(r['Pago neste mês'] || 0), 'Contas quitadas no mês'),
+        tile('t-bad', '⚠️', 'Ficou para trás', brl.format(r['Em atraso (acumulado)'] || 0), 'Venceu e ainda não foi pago'),
+        tile('t-warn', '📅', 'A vencer', brl.format(r['A vencer'] || 0), 'Próximas contas já lançadas')),
+      (() => {
+        const box = el('div', { class: 'chart' });
+        desenhos.geral = () => graficoBarras(box, D.mensal);
+        return el('div', { class: 'card' }, el('h2', { text: 'Como foi cada mês' }), el('p', { class: 'note', text: 'Contas de cada mês, pelo vencimento. Toque ou passe o mouse sobre a barra para ver os valores.' }),
+          el('div', { class: 'legend' }, legenda('var(--ok)', 'Pago'), legenda('var(--bad)', 'Em atraso'), legenda('var(--muted-bar)', 'A vencer')), box);
+      })()
+    );
+
+    // ---- Próximos meses
+    const p0 = D.projecao[0] || {}; const pf = D.projecao[D.projecao.length - 1] || {};
+    const neg = (p0.saldo || 0) < 0;
+    const box2 = el('div', { class: 'chart' });
+    desenhos.projecao = () => graficoLinha(box2, D.projecao);
+    const tProj = el('tbody');
+    D.projecao.forEach((l) => tProj.append(el('tr', {},
+      el('td', { text: l.mes }), el('td', { class: 'r hide-narrow', text: brl.format(l.receita || 0) }), el('td', { class: 'r', text: brl.format(l.total || 0) }),
+      el('td', { class: 'r ' + ((l.saldo || 0) < 0 ? 'neg' : 'pos'), text: brl.format(l.saldo || 0) }),
+      el('td', { class: 'r ' + ((l.acumulado || 0) < 0 ? 'neg' : 'pos'), text: brl.format(l.acumulado || 0) }))));
+    const tFix = el('tbody'), tVar = el('tbody');
+    D.orcamento.forEach((l) => {
+      if (l.tipo === 'Fixa') tFix.append(el('tr', {}, el('td', {}, l.conta, l.observacao ? el('span', { class: 'obs', text: l.observacao }) : ''), el('td', { class: 'hide-narrow', text: l.termina || 'Sem fim' }), el('td', { class: 'r', text: brl.format(l.valor || 0) })));
+      else tVar.append(el('tr', {}, el('td', { text: l.conta }), el('td', { class: 'r', text: brl.format(l.valor || 0) })));
+    });
+    paginas.projecao.sec.append(
+      el('div', { class: 'aviso ' + (neg ? 'bad' : 'ok') }, 'Recebendo ', el('b', { text: brl.format(p0.receita || 0) }), ' por mês e com ', el('b', { text: brl.format(p0.total || 0) }),
+        ' em contas previstas, o saldo de cada mês fica em ', el('b', { text: brl.format(p0.saldo || 0) }), '. ',
+        neg ? 'Ou seja, as contas previstas passam do que entra.' : 'Ou seja, o que entra cobre as contas previstas.'),
+      el('div', { class: 'tiles' },
+        tile('t-ok', '💰', 'Receita prevista por mês', brl.format(base['Receita prevista por mês'] || 0), 'Igual ao último mês recebido'),
+        tile('', '🏠', 'Contas fixas', brl.format(p0.fixas || 0), 'Valor do próximo mês'),
+        tile('t-warn', '💡', 'Contas variáveis (estimadas)', brl.format(p0.variaveis || 0), 'Água, luz, gás e internet'),
+        tile((pf.acumulado || 0) < 0 ? 't-bad' : 't-ok', '📉', `Saldo acumulado até ${pf.mes || ''}`, brl.format(pf.acumulado || 0), 'Já descontando as pendências de hoje')),
+      el('div', { class: 'card' }, el('h2', { text: 'Para onde o saldo vai' }), el('p', { class: 'note', text: 'Saldo acumulado mês a mês, começando pelas contas em aberto hoje. Abaixo da linha do zero, falta dinheiro.' }), box2),
+      el('div', { class: 'card' }, el('h2', { text: 'Mês a mês previsto' }), el('div', { class: 'scroll' }, el('table', {},
+        el('thead', {}, el('tr', {}, el('th', { text: 'Mês' }), el('th', { class: 'r hide-narrow', text: 'Receita' }), el('th', { class: 'r', text: 'Contas' }), el('th', { class: 'r', text: 'Saldo do mês' }), el('th', { class: 'r', text: 'Acumulado' }))), tProj))),
+      el('div', { class: 'grid2' },
+        el('div', { class: 'card' }, el('h2', { text: 'Contas fixas' }), el('p', { class: 'note', text: 'Mudam pouco de um mês para o outro.' }),
+          el('table', {}, el('thead', {}, el('tr', {}, el('th', { text: 'Conta' }), el('th', { class: 'hide-narrow', text: 'Até' }), el('th', { class: 'r', text: 'Por mês' }))), tFix)),
+        el('div', { class: 'card' }, el('h2', { text: 'Contas variáveis' }), el('p', { class: 'note', text: 'Valores estimados; o real pode variar.' }),
+          el('table', {}, el('thead', {}, el('tr', {}, el('th', { text: 'Conta' }), el('th', { class: 'r', text: 'Estimativa' }))), tVar)))
+    );
+
+    // ---- Pagos e Pendentes
+    lista(paginas.pagos.sec, D.contas, 'pago');
+    lista(paginas.pendentes.sec, D.contas, 'pendente');
+
+    app.append(el('p', { class: 'rodape' }, `Dados atualizados em ${D.atualizado_em}. `, (() => { const b = el('button', { type: 'button', text: 'Sair' }); b.addEventListener('click', () => { try { sessionStorage.removeItem('cm-s'); } catch (e) {} location.reload(); }); return b; })()));
+
+    const h = location.hash.slice(1);
+    mostrar(paginas[h] ? h : 'geral');
+    let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { const ativo = Object.keys(paginas).find((k) => !paginas[k].sec.hidden); if (desenhos[ativo]) desenhos[ativo](); }, 150); });
+  }
+
+  function legenda(cor, nome) { const sp = el('span'); const i = el('i'); i.style.background = cor; sp.append(i, nome); return sp; }
+
+  function lista(sec, contas, tipo) {
+    const ehPago = tipo === 'pago';
+    const sel = el('select', { 'aria-label': ehPago ? 'Mês do pagamento' : 'Mês do vencimento' });
+    const set = new Set(['Todos']);
+    contas.forEach((l) => { const pago = l.situacao === 'Paga'; if (ehPago === pago) set.add(mesDe(ehPago ? l.pago_em : l.vencimento) || 'Sem data'); });
+    const opcoes = [...set].sort((a, b) => ordemMes(a).localeCompare(ordemMes(b)));
+    opcoes.forEach((o) => sel.append(new Option(rotuloMes(o), o)));
+    const reais = opcoes.filter((o) => o !== 'Todos' && o !== 'Sem data');
+    sel.value = ehPago ? (reais[reais.length - 1] || 'Todos') : 'Todos';
+    const nTotal = el('div', { class: 'num' }), nQtd = el('div', { class: 'num' }), nSub = el('div', { class: 'sub' });
+    const corpo = el('tbody');
+    const cols = ehPago ? 4 : 5;
+    const ordem = { 'Atrasada': 0, 'A confirmar': 1, 'A vencer': 2 };
+    function render() {
+      const mes = sel.value;
+      const doMes = (l) => mes === 'Todos' || (mesDe(ehPago ? l.pago_em : l.vencimento) || 'Sem data') === mes;
+      let linhas = contas.filter((l) => (ehPago ? l.situacao === 'Paga' : l.situacao !== 'Paga') && doMes(l));
+      linhas = ehPago
+        ? linhas.sort((a, b) => iso(a.pago_em).localeCompare(iso(b.pago_em)) || a.conta.localeCompare(b.conta))
+        : linhas.sort((a, b) => (ordem[a.situacao] ?? 3) - (ordem[b.situacao] ?? 3) || iso(a.vencimento).localeCompare(iso(b.vencimento)));
+      const total = Math.round(linhas.reduce((a, l) => a + (l.valor || 0), 0) * 100) / 100;
+      const semValor = linhas.filter((l) => l.valor == null).length;
+      nTotal.textContent = brl.format(total); nQtd.textContent = String(linhas.length);
+      nSub.textContent = !ehPago && semValor ? `inclui ${semValor} conta(s) com valor a confirmar` : '';
+      corpo.replaceChildren();
+      if (!linhas.length) { const td = el('td', { class: 'vazio', text: ehPago ? 'Nenhum pagamento neste mês.' : 'Tudo em dia neste mês. 🎉' }); td.colSpan = cols; corpo.append(el('tr', {}, td)); return; }
+      linhas.forEach((l) => {
+        const pillN = !ehPago ? el('span', { class: 'pill only-narrow ' + pillClasse(l.situacao), text: l.situacao || '—' }) : '';
+        const tr = el('tr', {}, el('td', {}, l.conta, l.observacao ? el('span', { class: 'obs', text: l.observacao }) : '', pillN ? el('br') : '', pillN),
+          el('td', { class: 'hide-narrow', text: l.referencia || '—' }), el('td', { text: (ehPago ? l.pago_em : l.vencimento) || '—' }),
+          el('td', { class: 'r', text: l.valor == null ? '—' : brl.format(l.valor) }));
+        if (!ehPago) tr.append(el('td', { class: 'hide-narrow' }, el('span', { class: 'pill ' + pillClasse(l.situacao), text: l.situacao || '—' })));
+        corpo.append(tr);
+      });
+    }
+    sel.addEventListener('change', render);
+    const head = ehPago
+      ? ['Conta', ['Mês ref.', 'hide-narrow'], 'Pago em', ['Valor', 'r']]
+      : ['Conta', ['Mês ref.', 'hide-narrow'], 'Vencimento', ['Valor', 'r'], ['Situação', 'hide-narrow']];
+    sec.append(
+      el('label', { class: 'filtro' }, ehPago ? 'Mostrar pagamentos de ' : 'Mostrar contas que vencem em ', sel),
+      el('div', { class: 'tiles' },
+        el('div', { class: 'card tile ' + (ehPago ? 't-ok' : 't-bad') }, el('div', { class: 'ic', 'aria-hidden': 'true', text: ehPago ? '✔️' : '⏳' }), el('div', { class: 'lbl', text: ehPago ? 'Total pago' : 'Total pendente' }), nTotal, nSub),
+        el('div', { class: 'card tile' }, el('div', { class: 'ic', 'aria-hidden': 'true', text: '🧾' }), el('div', { class: 'lbl', text: ehPago ? 'Contas pagas' : 'Contas pendentes' }), nQtd)),
+      el('div', { class: 'card' }, el('h2', { text: ehPago ? 'O que já foi pago' : 'O que falta pagar' }),
+        el('p', { class: 'note', text: ehPago ? 'Em ordem de data do pagamento.' : 'Atrasadas primeiro, depois pela data de vencimento.' }),
+        el('div', { class: 'scroll' }, el('table', {}, el('thead', {}, el('tr', {}, head.map((h) => Array.isArray(h) ? el('th', { class: h[1], text: h[0] }) : el('th', { text: h })))), corpo)))
+    );
+    render();
+  }
+
+  function tooltip(box, svg, W, H, pontos, linhasDe) {
+    const tip = el('div', { class: 'tip' }); box.append(tip);
+    pontos.forEach(({ x, w, d }) => {
+      const r = s('rect', { x, y: 0, width: w, height: H - 24, fill: 'transparent' });
+      const show = (ev) => {
+        tip.replaceChildren(el('div', { class: 'd', text: d.mes }), ...linhasDe(d).map(([n, v]) => el('div', { text: `${n}: ${brl.format(v || 0)}` })));
+        tip.style.display = 'block';
+        const rect = box.getBoundingClientRect();
+        const px = ev.clientX - rect.left, py = ev.clientY - rect.top;
+        tip.style.left = Math.min(Math.max(0, px + 12), box.clientWidth - tip.offsetWidth) + 'px';
+        tip.style.top = Math.max(0, py - 10) + 'px';
+      };
+      r.addEventListener('mousemove', show); r.addEventListener('click', show);
+      r.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+      svg.append(r);
+    });
+  }
+
+  function graficoBarras(box, rows) {
+    box.replaceChildren();
+    const W = Math.max(280, box.clientWidth), H = 240;
+    const svg = s('svg', { viewBox: `0 0 ${W} ${H}` }); box.append(svg);
+    rows = rows.map((d) => ({ ...d, aberto: Math.max(0, (d.contas || 0) - (d.pago || 0) - (d.em_atraso || 0)) }));
+    const max = Math.max(1, ...rows.map((d) => d.contas || 0));
+    const tk = ticks(0, max); const top = tk[tk.length - 1];
+    const left = Math.ceil(Math.max(...tk.map((t) => medir(svg, brl0.format(t))))) + 10;
+    const y = (v) => (H - 28) - (v / top) * (H - 28 - 12);
+    const step = (W - 4 - left) / rows.length, bw = step * 0.7;
+    tk.forEach((t) => { svg.append(s('line', { x1: left, x2: W - 4, y1: y(t), y2: y(t), stroke: 'var(--line)' })); const tx = s('text', { x: left - 6, y: y(t), dy: '0.32em', 'text-anchor': 'end', fill: 'var(--muted)', 'font-size': 12 }); tx.textContent = brl0.format(t); svg.append(tx); });
+    const every = Math.max(1, Math.ceil(72 / step));
+    const pontos = [];
+    rows.forEach((d, i) => {
+      const x0 = left + i * step + (step - bw) / 2; let base = 0;
+      [['pago', 'var(--ok)'], ['em_atraso', 'var(--bad)'], ['aberto', 'var(--muted-bar)']].forEach(([k, cor]) => {
+        const v = d[k] || 0; if (!v) return;
+        svg.append(s('rect', { x: x0, width: bw, y: y(base + v), height: Math.max(0, y(base) - y(base + v)), fill: cor, rx: 4 })); base += v;
+      });
+      if (i % every === 0) { const tx = s('text', { x: x0 + bw / 2, y: H - 8, 'text-anchor': 'middle', fill: 'var(--muted)', 'font-size': 12 }); tx.textContent = d.mes; svg.append(tx); }
+      pontos.push({ x: left + i * step, w: step, d });
+    });
+    tooltip(box, svg, W, H, pontos, (d) => [['Recebido', d.recebido], ['Contas do mês', d.contas], ['Pago', d.pago], ['Em atraso', d.em_atraso], ['Atraso acumulado', d.acumulado]]);
+  }
+
+  function graficoLinha(box, rows) {
+    box.replaceChildren();
+    const W = Math.max(280, box.clientWidth), H = 240;
+    const svg = s('svg', { viewBox: `0 0 ${W} ${H}` }); box.append(svg);
+    const vals = rows.map((d) => d.acumulado || 0);
+    const tk = ticks(Math.min(0, ...vals), Math.max(0, ...vals)); const lo = tk[0], hi = tk[tk.length - 1];
+    const left = Math.ceil(Math.max(...tk.map((t) => medir(svg, brl0.format(t))))) + 10;
+    const y = (v) => (H - 28) - ((v - lo) / (hi - lo || 1)) * (H - 28 - 14);
+    const right = W - 60; const n = rows.length;
+    const x = (i) => left + 10 + (n > 1 ? i * (right - left - 10) / (n - 1) : 0);
+    tk.forEach((t) => { svg.append(s('line', { x1: left, x2: W - 4, y1: y(t), y2: y(t), stroke: t === 0 ? 'var(--muted)' : 'var(--line)', 'stroke-width': t === 0 ? 1.5 : 1 })); const tx = s('text', { x: left - 6, y: y(t), dy: '0.32em', 'text-anchor': 'end', fill: 'var(--muted)', 'font-size': 12 }); tx.textContent = brl0.format(t); svg.append(tx); });
+    const fim = vals[n - 1] || 0; const cor = fim < 0 ? 'var(--bad)' : 'var(--ok)';
+    svg.append(s('path', { d: rows.map((d, i) => (i ? 'L' : 'M') + x(i) + ',' + y(d.acumulado || 0)).join(''), fill: 'none', stroke: cor, 'stroke-width': 2.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+    const passo = n > 1 ? (right - left - 10) / (n - 1) : W;
+    const every = Math.max(1, Math.ceil(72 / passo));
+    const pontos = [];
+    rows.forEach((d, i) => {
+      svg.append(s('circle', { cx: x(i), cy: y(d.acumulado || 0), r: 3.5, fill: cor }));
+      if (i % every === 0) { const tx = s('text', { x: x(i), y: H - 8, 'text-anchor': 'middle', fill: 'var(--muted)', 'font-size': 12 }); tx.textContent = d.mes; svg.append(tx); }
+      pontos.push({ x: x(i) - passo / 2, w: passo, d });
+    });
+    if (n) { const tx = s('text', { x: x(n - 1) + 6, y: y(fim), dy: '0.32em', fill: cor, 'font-size': 12, 'font-weight': 600 }); tx.textContent = brl0.format(fim); svg.append(tx); }
+    tooltip(box, svg, W, H, pontos, (d) => [['Receita', d.receita], ['Contas', d.total], ['Saldo do mês', d.saldo], ['Acumulado', d.acumulado]]);
+  }
+})();
+</script>
+</body>
+</html>
